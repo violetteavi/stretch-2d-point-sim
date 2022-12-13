@@ -1,6 +1,7 @@
 import stretch_body.robot
 import signal
 import time
+import math
 robot = stretch_body.robot.Robot()
 robot.startup()
 
@@ -75,9 +76,54 @@ def reset():
     robot.push_command()
     time.sleep(5)
 
+XR_MIN = 0.15
+XR_MAX = 0.45
+YR_MIN = 0.56
+YR_MAX = 0.86
+XS_MIN = -2
+XS_MAX = 2
+YS_MIN = -2
+YS_MAX = 10
+
+def real2sim_coords(xr, yr):
+    xs = XS_MIN + (XS_MAX-XS_MIN)*(xr-XR_MIN)/(XR_MAX-XR_MIN)
+    ys = YS_MIN + (YS_MAX-YS_MIN)*(yr-YR_MIN)/(YR_MAX-YR_MIN)
+    return xs, ys
+    
+def sim2real_coords(xs, ys):
+    xr = XR_MIN + (XR_MAX-XR_MIN)*(xs-XS_MIN)/(XS_MAX-XS_MIN)
+    yr = YR_MIN + (YR_MAX-YR_MIN)*(ys-YS_MIN)/(YS_MAX-YS_MIN)
+    return xr, yr
+
+def sim2real_vel(vxs, vys):
+    vxr = vxs*(XR_MAX-XR_MIN)/(XS_MAX-XS_MIN)
+    vyr = vys*(YR_MAX-YR_MIN)/(YS_MAX-YS_MIN)
+    return vxr, vyr
+    
+def real2sim_vel(vxr, vyr):
+    vxs = vxr*(XS_MAX-XS_MIN)/(XR_MAX-XR_MIN)
+    vys = vyr*(YS_MAX-YS_MIN)/(YR_MAX-YR_MIN)
+    return vxs, vys
+    
+def roundtrip_test():
+    xr = 0.3
+    yr = 0.75
+    xs, ys = real2sim_coords(xr, yr)
+    xr_new, yr_new = sim2real_coords(xs, ys)
+    if(not math.isclose(xr, xr_new) or not math.isclose(yr, yr_new)):
+        print("Something is wrong with coord round trip")
+    vxs = 1
+    vys = 2
+    vxr, vyr = sim2real_vel(vxs, vys)
+    vxs_new, vys_new = real2sim_vel(vxr, vyr)
+    if(not math.isclose(vxs, vxs_new) or not math.isclose(vys, vys_new)):
+        print("Something is wrong with vel round trip")
+    
+
 if __name__ == "__main__":
     stop_robot()
-    reset()
+    roundtrip_test()
+    #reset()
     #drop_keys()
     # update new position
     robot.push_command()
