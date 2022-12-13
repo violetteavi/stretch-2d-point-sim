@@ -118,20 +118,44 @@ def roundtrip_test():
     vxs_new, vys_new = real2sim_vel(vxr, vyr)
     if(not math.isclose(vxs, vxs_new) or not math.isclose(vys, vys_new)):
         print("Something is wrong with vel round trip")
-    
+
+def generate_dummy_sim_vel():
+    vxs = -1 # left
+    vys = 2
+    return vxs, vys
+
+def is_in_bounds(xr, yr):
+    tol = 0.01
+    x_in_bounds = XR_MIN - tol < px and px < XR_MAX + tol
+    y_in_bounds = YR_MIN - tol < py and py < YR_MAX + tol
+    return x_in_bounds and y_in_bounds
+
+def get_robot_vel_from_agent(px, py):
+    # if out of sim bounds, stop robot
+    if not is_in_bounds(px, py):
+        return 0, 0
+    xs, ys = real2sim_coords(px, py)
+    vxs, vys = generate_dummy_sim_vel()
+    vxr, vyr = sim2real_vel(vxs, vys)
+    return vxr, vyr
 
 if __name__ == "__main__":
     stop_robot()
     roundtrip_test()
-    #reset()
-    #drop_keys()
+    #robot.end_of_arm.move_to('stretch_gripper', 60)
+    reset()
+    # drop_keys()
     # update new position
     robot.push_command()
     loop_count = 0
-    while False:
+    done = False
+    done = True
+    while not done:
         px, py = get_position()
-        vx, vy = compute_velocity_swirl(px, py)
+        vx, vy = get_robot_vel_from_agent(px, py)
         send_velocity(vx, vy)
+        if(vx == 0 and vy == 0):
+            done = True
         if(loop_count%10==0):
             print_arm_status()
         loop_count = loop_count + 1
